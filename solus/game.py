@@ -1,5 +1,6 @@
 
 import os
+import pygame
 from functions import *
 from classes import *
 from dicts import *
