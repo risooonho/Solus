@@ -1,6 +1,36 @@
 import dicts
 import pygame
+from functions import encounter
 from map import tmx
+
+class spritesheet(object):
+    def __init__(self, filename):
+        try:
+            self.sheet = pygame.image.load(filename).convert()
+        except pygame.error, message:
+            print 'Unable to load spritesheet image:', filename
+            raise SystemExit, message
+    # Load a specific image from a specific rectangle
+    def image_at(self, rectangle, colorkey = None):
+        "Loads image from x,y,x+offset,y+offset"
+        rect = pygame.Rect(rectangle)
+        image = pygame.Surface(rect.size).convert()
+        image.blit(self.sheet, (0, 0), rect)
+        if colorkey is not None:
+            if colorkey is -1:
+                colorkey = image.get_at((0,0))
+            image.set_colorkey(colorkey, pygame.RLEACCEL)
+        return image
+    # Load a whole bunch of images and return them as a list
+    def images_at(self, rects, colorkey = None):
+        "Loads multiple images, supply a list of coordinates"
+        return [self.image_at(rect, colorkey) for rect in rects]
+    # Load a whole strip of images
+    def load_strip(self, rect, image_count, colorkey = None):
+        "Loads a strip of images and returns them as a list"
+        tups = [(rect[0]+rect[2]*x, rect[1], rect[2], rect[3])
+                for x in range(image_count)]
+        return self.images_at(tups, colorkey)
 
 class Game(object):
     def main(self, screen):
@@ -10,6 +40,7 @@ class Game(object):
 
         self.player_s = tmx.SpriteLayer()
         self.enemy_s = tmx.SpriteLayer()
+        self.item_s = tmx.SpriteLayer()
 
         plyr_strt = self.tilemap.layers['triggers'].find('player')[0]
         enemy_strt = self.tilemap.layers['triggers'].find('enemy')[0]
@@ -89,27 +120,14 @@ class Player(Character):
 
         super(Player, self).__init__(name, level, 'player', *groups)
 
-        self.img_N = pygame.image.load('imgs/player_N.png')
-        self.img_N.convert()
-        self.img_E = pygame.image.load('imgs/player_E.png')
-        self.img_E.convert()
-        self.img_W = pygame.image.load('imgs/player_W.png')
-        self.img_W.convert()
-        self.img_S = pygame.image.load('imgs/player_S.png')
-        self.img_S.convert()
+        self.ss = spritesheet('imgs/playerSS.png')
+        self.sstrip = self.ss.load_strip((0,0,16,16), 8, (255,255,255))
 
-        self.img_NW = pygame.image.load('imgs/player_NW.png')
-        self.img_NW.convert()
-        self.img_NE = pygame.image.load('imgs/player_NE.png')
-        self.img_NE.convert()
-        self.img_SW = pygame.image.load('imgs/player_SW.png')
-        self.img_SW.convert()
-        self.img_SE = pygame.image.load('imgs/player_SE.png')
-        self.img_SE.convert()
+        self.img_N, self.img_S, self.img_E, self.img_W = self.sstrip[:4]
+        self.img_NE, self.img_SE, self.img_NW, self.img_SW = self.sstrip[4:]
 
         self.image = self.img_N
         self.rect = pygame.Rect(location, self.image.get_size())
-        self.s_w, self.s_h = pygame.display.get_surface().get_size()
 
         id_parent = self.id
         self.id = 'player:' + id_parent
@@ -151,10 +169,12 @@ class Player(Character):
             if 'b' in blockers and last.top >= cell.bottom and new.top < cell.bottom:
                 new.top = cell.bottom
 
-        pygame.sprite.spritecollide(self, game.enemy_s, True)
-
+        B = pygame.sprite.spritecollideany(self, game.enemy_s)
+        if B and B.is_alive:
+            encounter(self, B)
 
         game.tilemap.set_focus(new.x, new.y)
+
 #Base class for player creation holds ... can just
 #use character object with attributes of hostile?
 class Enemy(Character):
@@ -174,7 +194,7 @@ class Enemy(Character):
     def update(self, dt, game):
 
         if self.rect.colliderect(game.player.rect):
-            pass
+            encounter(game.player, self)
 
 
 #Base class for equipment items, contains level, group, name attributes

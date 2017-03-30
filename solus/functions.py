@@ -1,4 +1,4 @@
-from classes import *
+#from classes import *
 from dicts import *
 
 def quit_querry(game):
@@ -46,22 +46,25 @@ def create_player():
 #Need to add more options for encounter, run, etc...
 def encounter(A,B):
     #while loop for input
-    while True:
-        y_n = raw_input('Do you want to fight %s?\nY/N:'% B.name)
+    #while True:
+        #y_n = raw_input('Do you want to fight %s?\nY/N:'% B.name)
 
-        if y_n == 'Y' or y_n == 'y':
-            print('fight!')
-            fight(A, B)
-            break
-        elif y_n == 'N' or y_n == 'n':
-            print('BYE!')
-            break
-        else:
-            print('TRY AGAIN!')
+        #if y_n == 'Y' or y_n == 'y':
+    print 'encounter'
+    fight(A, B)
+
+
+        #break
+        #elif y_n == 'N' or y_n == 'n':
+            #print('BYE!')
+            #break
+        #else:
+            #print('TRY AGAIN!')
 
 #Function initiates a fight, takes character objects A attacks first.
 #Function calls strike function which will modify character health and is_alive.
 def fight(A, B):
+    print 'fight'
     #unpack stats into a temp list
     a = [A.hp, A.attk, A.dfnc, A.is_alive]
     b = [B.hp, B.attk, B.dfnc, B.is_alive]
@@ -80,6 +83,7 @@ def fight(A, B):
         #if B is not alive
         else:
             print('B died')
+            B.kill()
             #end the fight
             break
     #repack stats into attributes
