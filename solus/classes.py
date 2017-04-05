@@ -1,8 +1,10 @@
-import dicts
-import pygame
-from functions import encounter
+import functions as fn
+from dicts import *
 from map import tmx
+import pygame
+import random as rd
 
+#pasted spritesheet class from pygame supporter somewhere...
 class spritesheet(object):
     def __init__(self, filename):
         try:
@@ -33,41 +35,114 @@ class spritesheet(object):
         return self.images_at(tups, colorkey)
 
 class Game(object):
-    def main(self, screen):
-        clock = pygame.time.Clock()
 
-        self.tilemap = tmx.load('map/world.tmx', screen.get_size())
+    def title_screen(self, screen, items):
+        self.clock = pygame.time.Clock()
+
+        self.screen = screen
+        self.s_size = self.screen.get_size()
+        self.m_items = []
+
+        title = FNT['lrg'].render('SOLUS', 1, CLR['wht'])
+
+        for index, item in enumerate(items):
+            label = FNT['med'].render(item, 1, CLR['wht'])
+            width = label.get_rect().width
+            height = label.get_rect().height
+            posx = (self.s_size[0] / 2) - (width / 2)
+            t_h = len(items)*height
+            posy = (self.s_size[1] / 2) - (t_h / 2) + (index * height)
+            self.m_items.append([item, label, (width, height), (posx,posy)])
+
+        tsloop = True
+        self.hard_quit = False
+        while tsloop:
+            self.clock.tick(60)
+            mcx, mcy = (0, 0)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    tsloop = False
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_ESCAPE:
+                        tsloop = False
+                    if event.key == pygame.K_RETURN:
+                        self.main(self.screen)
+                        if self.hard_quit:
+
+                            return
+                if event.type == pygame.MOUSEBUTTONUP:
+                    mcx, mcy = pygame.mouse.get_pos()
+
+            self.screen.fill(CLR['blk'])
+            self.screen.blit(title, (10, 10))
+
+            for name, label, (width, height), (posx, posy) in self.m_items:
+                self.screen.blit(label, (posx,posy))
+                if posx <= mcx <= posx + width and posy <= mcy <= posy + height:
+                    if name == 'Quit':
+                        tsloop = False
+                    if name == 'Start':
+                        self.main(self.screen)
+                        if self.hard_quit:
+                            return
+
+            pygame.display.flip()
+
+    def main(self, screen):
+        self.tilemap = tmx.load('map/world.tmx', self.s_size)
+        self.msgs = pygame.Surface((self.s_size[0]-40, FNT['sml'].get_height()),
+                                    pygame.SRCALPHA, 32)
+        self.msgs.convert_alpha()
+
+        txt =  FNT['sml'].render('Welcome to Solus', 1, CLR['blk'])
+        self.msgs.blit(txt, (0,0))
 
         self.player_s = tmx.SpriteLayer()
         self.enemy_s = tmx.SpriteLayer()
         self.item_s = tmx.SpriteLayer()
 
-        plyr_strt = self.tilemap.layers['triggers'].find('player')[0]
-        enemy_strt = self.tilemap.layers['triggers'].find('enemy')[0]
+        plr_st = self.tilemap.layers['triggers'].find('player')[0]
 
-        self.player = Player('Andre', 3, (plyr_strt.px, plyr_strt.py), self.player_s)
-        self.enemy = Enemy('Gloob', 1, (enemy_strt.px, enemy_strt.py), self.enemy_s)
+        self.player = Player('Andre', 3, (plr_st.px, plr_st.py), self.player_s)
+        level = rd.randint(1,3)
+        px = rd.randint(50, self.tilemap.px_width-50)
+        py = rd.randint(50, self.tilemap.px_height-50)
+        self.knife = Knife('Knife 1', level, (px,py), self.item_s)
+
+        for i in range(rd.randint(1,5)):
+            enemy_list = []
+            enemy_name = 'enemy ' + str(i)
+            level = rd.randint(1,3)
+            px = rd.randint(50, self.tilemap.px_width-50)
+            py = rd.randint(50, self.tilemap.px_height-50)
+            enemy_list.append(Enemy(enemy_name, level, (px,py), self.enemy_s))
+
+        #self.enemy = Enemy('Gloob', 1, (enemy_strt.px, enemy_strt.py), self.enemy_s)
 
         self.tilemap.layers.append(self.player_s)
         self.tilemap.layers.append(self.enemy_s)
+        self.tilemap.layers.append(self.item_s)
 
-        while 1:
+        while self.player.is_alive:
             #restrain to 30fps
-            dt = clock.tick(30)
+            dt = self.clock.tick(30)
             #event handling
             for event in pygame.event.get():
                 #distinct key events
                 if event.type == pygame.QUIT:
+                    self.hard_quit = True
                     return
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    return
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_ESCAPE:
+                        return
 
             #continuous key events
 
             #drawing
             self.tilemap.update(dt / 1000., self)
-            screen.fill((200, 200, 200))
+            screen.fill((CLR['blk']))
             self.tilemap.draw(screen)
+            self.screen.blit(self.msgs, (20,18))
             #after drawing everything, flip()
             pygame.display.flip()
 
@@ -96,7 +171,7 @@ class Character(Living):
     def __init__(self, name, level, type, *groups):
 
         #this sets the stats based on CHR_LEVEL dict in dicts.py
-        lvl = dicts.CHR_LEVEL[level]
+        lvl = CHR_LEVEL[level]
         hp = lvl[0]
         attk = lvl[1]
         dfnc = lvl[2]
@@ -133,6 +208,10 @@ class Player(Character):
         self.id = 'player:' + id_parent
 
     def update(self, dt, game):
+        B = pygame.sprite.spritecollideany(self, game.enemy_s)
+        if B and B.is_alive and self.is_alive:
+            fn.encounter(self, B)
+
         last = self.rect.copy()
 
         key = pygame.key.get_pressed()
@@ -169,10 +248,6 @@ class Player(Character):
             if 'b' in blockers and last.top >= cell.bottom and new.top < cell.bottom:
                 new.top = cell.bottom
 
-        B = pygame.sprite.spritecollideany(self, game.enemy_s)
-        if B and B.is_alive:
-            encounter(self, B)
-
         game.tilemap.set_focus(new.x, new.y)
 
 #Base class for player creation holds ... can just
@@ -186,21 +261,32 @@ class Enemy(Character):
         self.image = pygame.image.load('imgs/enemy.png')
         self.image.convert()
         self.rect = pygame.Rect(location, self.image.get_size())
+        self.font = pygame.font.SysFont(None, 10)
+        self.level_txt = self.font.render(str(level), 1, (255,255,255))
+
+        self.image.blit(self.level_txt, (5, 5))
 
         id_parent = self.id
         self.id = 'enemy:' + id_parent
         self.i = 0
 
-    def update(self, dt, game):
+        font = pygame.font.Font(None, 24)
+        font_color = (255,255,255)
+        font_background = (0,0,0)
+        t = font.render('Enemy!', True, font_color, font_background)
+        t_rect = t.get_rect()
+        t_rect.centerx, t_rect.centery = 100,100
 
-        if self.rect.colliderect(game.player.rect):
-            encounter(game.player, self)
+    def update(self, dt, game):
+        pass
+
 
 
 #Base class for equipment items, contains level, group, name attributes
 class Equipment(Thing):
 
-    def __init__(self, group, name, level):
+    def __init__(self, group, name, level, *groups):
+        super(Equipment, self).__init__(*groups)
         #level of equipment, modifies main bonuses
         self.level = level
         #groups include weapon, armor, useable, etc...
@@ -211,11 +297,18 @@ class Equipment(Thing):
         id_parent = self.id
         self.id = 'equipment:' + id_parent
 
+    def update(self, dt, game):
+
+        if self.rect.colliderect(game.player.rect):
+            fn.pickup_equipment(game.player, self)
+
+
+
 #Base class for weapon items, contains range and type
 class Weapon(Equipment):
 
-    def __init__(self, type, name, wep_range, level):
-        super(Weapon, self).__init__('weapon', name, level)
+    def __init__(self, type, name, wep_range, level, *groups):
+        super(Weapon, self).__init__('weapon', name, level, *groups)
         #controlls how far away you can attack from
         self.wep_range = wep_range
         #hold info about type, melee, ranged, etc...
@@ -227,10 +320,14 @@ class Weapon(Equipment):
 #Class for knife items, contains attack attack bonus
 class Knife(Weapon):
 
-    def __init__(self, name, level):
-        super(Knife, self).__init__('melee', name, 1, level)
+    def __init__(self, name, level, location, *groups):
+        super(Knife, self).__init__('melee', name, 1, level, *groups)
         #sets attack bonus by multiplying by level attribute(Equipment class)
         self.attk_bonus = 2 * self.level
+
+        self.image = pygame.image.load('imgs/knife.png')
+        self.image.convert()
+        self.rect = pygame.Rect(location, self.image.get_size())
 
         id_parent = self.id
         self.id = 'knife:' + id_parent

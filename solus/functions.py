@@ -50,7 +50,7 @@ def encounter(A,B):
         #y_n = raw_input('Do you want to fight %s?\nY/N:'% B.name)
 
         #if y_n == 'Y' or y_n == 'y':
-    print 'encounter'
+
     fight(A, B)
 
 
@@ -64,11 +64,9 @@ def encounter(A,B):
 #Function initiates a fight, takes character objects A attacks first.
 #Function calls strike function which will modify character health and is_alive.
 def fight(A, B):
-    print 'fight'
     #unpack stats into a temp list
     a = [A.hp, A.attk, A.dfnc, A.is_alive]
     b = [B.hp, B.attk, B.dfnc, B.is_alive]
-
     #Initiate loop if both chars are alive
     while a[3] and b[3]:
         #Strike called with A attacking B, modifies B's hp
@@ -78,11 +76,10 @@ def fight(A, B):
             #Strike called with B attacking A, modifies A's hp
             a[0], a[3] = strike(b, a)
             if not a[3]:
-                print('A died')
+                A.kill()
                 break
         #if B is not alive
         else:
-            print('B died')
             B.kill()
             #end the fight
             break
@@ -120,7 +117,6 @@ def equip_weapon(character, name):
             #add bonus to characte's attack and set equipped
             character.attk += character.inventory[i].attk_bonus
             character.inventory[i].is_equipped = True
-            print('equipped!')
             return
     #Flag that no item was found
     print('That item was not found and not equipped!')
@@ -129,3 +125,5 @@ def equip_weapon(character, name):
 #Need check for inventory size and inventory limiting
 def pickup_equipment(character, equipment):
     character.inventory.append(equipment)
+    equip_weapon(character, equipment.name)
+    equipment.kill()
