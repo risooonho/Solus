@@ -90,12 +90,17 @@ class Game(object):
 
     def main(self, screen):
         self.tilemap = tmx.load('map/world.tmx', self.s_size)
-        self.msgs = pygame.Surface((self.s_size[0]-40, FNT['sml'].get_height()),
+        self.msgs = pygame.Surface((self.s_size[0]-40,
+                                    int(2 * FNT['sml'].get_height())),
                                     pygame.SRCALPHA, 32)
         self.msgs.convert_alpha()
 
-        txt =  FNT['sml'].render('Welcome to Solus', 1, CLR['blk'])
-        self.msgs.blit(txt, (0,0))
+        self.messages = [None, None]
+        welcome =  FNT['sml'].render('Welcome to Solus', 1, CLR['blk'])
+        direction = FNT['sml'].render('Find something to fight!', 1, CLR['blk'])
+        self.messages[0] = welcome
+        self.messages[1] = direction
+
 
         self.player_s = tmx.SpriteLayer()
         self.enemy_s = tmx.SpriteLayer()
@@ -104,6 +109,8 @@ class Game(object):
         plr_st = self.tilemap.layers['triggers'].find('player')[0]
 
         self.player = Player('Andre', 3, (plr_st.px, plr_st.py), self.player_s)
+        self.player.update_stats()
+
         level = rd.randint(1,3)
         px = rd.randint(50, self.tilemap.px_width-50)
         py = rd.randint(50, self.tilemap.px_height-50)
@@ -142,9 +149,22 @@ class Game(object):
             self.tilemap.update(dt / 1000., self)
             screen.fill((CLR['blk']))
             self.tilemap.draw(screen)
-            self.screen.blit(self.msgs, (20,18))
+            self.blit_game_info(screen)
+
             #after drawing everything, flip()
             pygame.display.flip()
+
+    def blit_game_info(self, screen):
+        screen.blit(self.messages[0], (20,18))
+        screen.blit(self.messages[1], (20, 29))
+        screen.blit(self.player.hp_t, (345, 18))
+        screen.blit(self.player.attk_t, (345, 29))
+        screen.blit(self.player.dfnc_t, (345, 40))
+
+    def update_msgs(self, msg):
+        self.messages[0] = self.messages[1]
+        message =  FNT['sml'].render(msg, 1, CLR['blk'])
+        self.messages[1] = message
 
 #Most basic object (atm), contains location attribute
 class Thing(pygame.sprite.Sprite):
@@ -169,24 +189,22 @@ class Living(Thing):
 class Character(Living):
 
     def __init__(self, name, level, type, *groups):
-
         #this sets the stats based on CHR_LEVEL dict in dicts.py
         lvl = CHR_LEVEL[level]
         hp = lvl[0]
-        attk = lvl[1]
-        dfnc = lvl[2]
 
         super(Character, self).__init__(name, hp, *groups)
         self.type = type
         self.is_alive = True
-        self.attk = attk
-        self.dfnc = dfnc
+
+        self.attk = lvl[1]
+        self.dfnc = lvl[2]
+
         #holds character inventory, possible to add multiples of items?
         self.inventory = []
 
         id_parent = self.id
         self.id = 'character:' + id_parent
-
 
 #Base class for player creation holds ...
 class Player(Character):
@@ -207,10 +225,12 @@ class Player(Character):
         id_parent = self.id
         self.id = 'player:' + id_parent
 
+    def update_stats(self):
+        self.hp_t = FNT['sml'].render('    HP: '+str(self.hp), 1, CLR['blk'])
+        self.attk_t = FNT['sml'].render('ATTK: '+str(self.attk), 1, CLR['blk'])
+        self.dfnc_t = FNT['sml'].render('DFNC: '+str(self.dfnc), 1, CLR['blk'])
+
     def update(self, dt, game):
-        B = pygame.sprite.spritecollideany(self, game.enemy_s)
-        if B and B.is_alive and self.is_alive:
-            fn.encounter(self, B)
 
         last = self.rect.copy()
 
@@ -278,9 +298,12 @@ class Enemy(Character):
         t_rect.centerx, t_rect.centery = 100,100
 
     def update(self, dt, game):
-        pass
-
-
+        if self.rect.colliderect(game.player.rect):
+            if self.is_alive and game.player.is_alive:
+                fn.encounter(game.player, self)
+                if not self.is_alive:
+                    game.update_msgs('You killed ' + self.name)
+                    game.player.update_stats()
 
 #Base class for equipment items, contains level, group, name attributes
 class Equipment(Thing):
@@ -293,14 +316,64 @@ class Equipment(Thing):
         self.group = group
         self.name = name
         self.is_equipped = False
+        self.picking_up = True
 
         id_parent = self.id
         self.id = 'equipment:' + id_parent
 
     def update(self, dt, game):
 
-        if self.rect.colliderect(game.player.rect):
-            fn.pickup_equipment(game.player, self)
+        if self.rect.colliderect(game.player.rect) and self.picking_up:
+            self.ask_pickup(dt, game)
+        if not self.rect.colliderect(game.player.rect) and not self.picking_up:
+            self.picking_up = True
+
+    def ask_pickup(self, dt, game):
+        choice = True
+        pickup = FNT['med'].render('Pick up ' + self.name + '?', 1, CLR['blk'])
+        game.screen.fill((CLR['blk']))
+        game.tilemap.draw(game.screen)
+        game.screen.blit(pickup, (152, 170))
+        game.screen.blit(TXT['YES'], (152, 192))
+        game.screen.blit(TXT['no'], (152, 203))
+        game.blit_game_info(game.screen)
+        pygame.display.flip()
+        while True:
+            for event in pygame.event.get():
+                #distinct key events
+                if event.type == pygame.QUIT:
+                    game.hard_quit = True
+                    return
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_ESCAPE:
+                        return
+                    if event.key == pygame.K_RETURN:
+                        if choice:
+                            fn.pickup_equipment(game.player, self)
+                            game.update_msgs('You picked up ' + self.name)
+                            game.player.update_stats()
+                            return
+                        else:
+                            return
+                    if event.key == pygame.K_DOWN:
+                        choice = False
+                        self.picking_up = False
+                        game.screen.fill((CLR['blk']))
+                        game.tilemap.draw(game.screen)
+                        game.screen.blit(pickup, (152, 170))
+                        game.screen.blit(TXT['yes'], (152, 192))
+                        game.screen.blit(TXT['NO'], (152, 203))
+                        game.blit_game_info(game.screen)
+                        pygame.display.flip()
+                    if event.key == pygame.K_UP:
+                        choice = True
+                        game.screen.fill((CLR['blk']))
+                        game.tilemap.draw(game.screen)
+                        game.screen.blit(pickup, (152, 170))
+                        game.screen.blit(TXT['YES'], (152, 192))
+                        game.screen.blit(TXT['no'], (152, 203))
+                        game.blit_game_info(game.screen)
+                        pygame.display.flip()
 
 
 

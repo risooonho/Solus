@@ -11,4 +11,10 @@ CLR = {'wht': (255, 255, 255),
         'blk': (0, 0, 0)}
 FNT = {'lrg': pygame.font.SysFont(None, 60),
         'med': pygame.font.SysFont(None, 30),
-        'sml': pygame.font.SysFont(None, 15)}
+        'sml': pygame.font.SysFont(None, 15),
+        'smlx': pygame.font.SysFont(None, 17)}
+
+TXT = {'YES': FNT['smlx'].render('YES', 1, CLR['wht']),
+        'NO': FNT['smlx'].render('NO', 1, CLR['wht']),
+        'yes': FNT['sml'].render('yes', 1, CLR['blk']),
+        'no': FNT['sml'].render('no', 1, CLR['blk'])}
