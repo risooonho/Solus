@@ -1,3 +1,4 @@
+"""Docstring for setup for setuptools."""
 try:
     from setuptools import setup
 except ImportError:
@@ -9,11 +10,10 @@ config = {
     'url': 'URL to get it at.',
     'download_url': 'Where to download it.',
     'author_email': 'andre.r.wolff@gmail.com',
-    'version': '0.1',
-    'install_requires': ['nose'],
-    'packages': ['NAME'],
+    'version': '1.0',
+    'install_requires': ['nose', 'pygame'],
+    'packages': ['solus'],
     'scripts': [],
-    'name': 'projectname'
-}
+    'name': 'Solus'}
 
 setup(**config)
