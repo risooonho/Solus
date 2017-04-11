@@ -5,12 +5,17 @@
 # TODO: support properties on more things
 
 import sys
+import os
 import struct
 import pygame
 from pygame.locals import *
 from pygame import Rect
 from xml.etree import ElementTree
 
+def res_path(relative):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative)
+    return os.path.join(relative)
 
 class Tile(object):
     def __init__(self, gid, surface, tileset):
@@ -84,7 +89,9 @@ class Tileset(object):
         return tileset
 
     def add_image(self, file):
-        image = pygame.image.load('map/'+file).convert_alpha()
+        img= 'data\\' + file
+        img = res_path(img)
+        image = pygame.image.load(img).convert_alpha()
         if not image:
             sys.exit("Error creating new Tileset: file %s not found" % file)
         id = self.firstgid
