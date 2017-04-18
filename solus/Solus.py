@@ -1,9 +1,11 @@
 """Run the game."""
-import pygame
-from classes import Game
+import sys
+import pygame as pg
+from lib import setup
+from lib.main import main
 
 if __name__ == '__main__':
-    pygame.init()
-    screen = pygame.display.set_mode((400, 400))
-    menu_items = ['Start', 'Quit']
-    Game().title_screen(screen, menu_items)
+    setup.GAME
+    main()
+    pg.quit()
+    sys.exit
