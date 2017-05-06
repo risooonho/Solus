@@ -5,7 +5,9 @@ import os
 
 SCREEN_SIZE = (600, 480)
 
+
 BLACK = (0, 0, 0)
+GREY = (50, 50, 50)
 NEAR_BLACK = (1, 0, 0)
 WHITE = (255, 255, 255)
 BLACK_BLUE = (19, 15, 48)
@@ -19,6 +21,7 @@ PINK = (208, 32, 144)
 TRANSITION_COLOR = BLACK_BLUE
 
 MAIN_MENU = 'main menu'
+WORLD = 'world'
 
 #
 # pygame.init()

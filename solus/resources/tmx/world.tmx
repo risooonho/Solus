@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="16" tileheight="16" nextobjectid="17">
- <tileset firstgid="1" name="tilesetmap" tilewidth="16" tileheight="16" tilecount="12" columns="4">
-  <image source="tilesetmap.png" width="64" height="48"/>
-  <tile id="3">
-   <properties>
-    <property name="player" type="bool" value="true"/>
-   </properties>
-  </tile>
-  <tile id="7">
-   <properties>
-    <property name="enemy" type="bool" value="true"/>
-   </properties>
-  </tile>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" nextobjectid="20">
+ <tileset firstgid="1" name="tilesetmap" tilewidth="32" tileheight="32" tilecount="12" columns="4">
+  <image source="tilesetmap.png" width="128" height="96"/>
  </tileset>
  <layer name="Tile Layer 1" width="50" height="50">
   <data encoding="base64" compression="zlib">
@@ -19,26 +9,29 @@
   </data>
  </layer>
  <objectgroup color="#ff0000" name="triggers" visible="0">
-  <object id="3" name="tlrb" x="16" y="784" width="768" height="16">
+  <object id="3" name="t" x="32" y="1568" width="1536" height="32">
    <properties>
-    <property name="blocker" value="tlrb"/>
+    <property name="blocker" value="t"/>
    </properties>
   </object>
-  <object id="9" name="player" gid="4" x="32" y="768" width="16" height="16"/>
-  <object id="10" name="enemy" gid="8" x="80" y="736" width="16" height="16"/>
-  <object id="12" name="tlrb" x="784" y="16" width="16" height="768">
+  <object id="12" name="l" x="1568" y="32" width="32" height="1536">
    <properties>
-    <property name="blocker" value="tlrb"/>
+    <property name="blocker" value="l"/>
    </properties>
   </object>
-  <object id="14" name="tlrb" x="16" y="0" width="768" height="16">
+  <object id="14" name="b" x="32" y="0" width="1536" height="32">
    <properties>
-    <property name="blocker" value="tlrb"/>
+    <property name="blocker" value="b"/>
    </properties>
   </object>
-  <object id="15" name="tlrb" x="0" y="16" width="16" height="768">
+  <object id="15" name="r" x="0" y="32" width="32" height="1536">
    <properties>
-    <property name="blocker" value="tlrb"/>
+    <property name="blocker" value="r"/>
+   </properties>
+  </object>
+  <object id="18" name="player" gid="4" x="64" y="1536" width="32" height="32">
+   <properties>
+    <property name="player" value="yes"/>
    </properties>
   </object>
  </objectgroup>

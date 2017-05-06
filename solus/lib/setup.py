@@ -1,4 +1,10 @@
-"""Docstring for living classes."""
+"""
+This module handles game startup.
+
+Initialises display, loads resources
+into dicts for easy access.
+"""
+
 import os
 import pygame as pg
 from . import tools
@@ -15,7 +21,9 @@ GFX = tools.load_all_gfx(os.path.join('resources', 'graphics'))
 TMX = tools.load_all_tmx(os.path.join('resources', 'tmx'))
 FONTS = tools.load_all_fonts(os.path.join('resources', 'fonts'))
 
-FNT = {40: pg.font.Font(FONTS['s_font'], 40),
-       20: pg.font.Font(FONTS['s_font'], 20),
-       10: pg.font.Font(FONTS['s_font'], 10),
-       12: pg.font.Font(FONTS['s_font'], 12)}
+FNT = {100: pg.font.Font(FONTS['agr_font'], 100),
+       50: pg.font.Font(FONTS['agr_font'], 50),
+       25: pg.font.Font(FONTS['agr_font'], 25),
+       20: pg.font.Font(FONTS['agr_font'], 20),
+       15: pg.font.Font(FONTS['agr_font'], 20),
+       12: pg.font.Font(FONTS['agr_font'], 12)}

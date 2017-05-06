@@ -1,29 +1,12 @@
 """Docstring for living classes."""
-import functions as fn
-from dicts import CHR_LEVEL, CLR, FNT, TXT
-import sys
-import os
+import constants as c
+import setup
 import pygame as pg
-import random as rd
+from tools import _Thing
+from items import Knife
 
 
-def res_path(relative):
-    """Return required path if run from .exe made with pyinstaller."""
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative)
-    return os.path.join(relative)
-
-
-class Thing(pg.sprite.Sprite):
-    """This class is the most basic object in the game."""
-
-    def __init__(self, *groups):
-        """init."""
-        super(Thing, self).__init__(*groups)
-        self.id = 'thing'
-
-
-class Living(Thing):
+class Living(_Thing):
     """This class is the foundation for living things."""
 
     def __init__(self, name, hp, *groups):
@@ -36,6 +19,9 @@ class Living(Thing):
         id_parent = self.id
         self.id = 'living:' + id_parent
 
+    def on_collide(self):
+        pass
+
 
 class Character(Living):
     """This class is the foundation for all characters."""
@@ -43,7 +29,7 @@ class Character(Living):
     def __init__(self, name, level, type, *groups):
         """init."""
         # this sets the stats based on CHR_LEVEL dict in dicts.py
-        lvl = CHR_LEVEL[level]
+        lvl = (100, 10, 10)
         hp = lvl[0]
 
         super(Character, self).__init__(name, hp, *groups)
@@ -59,6 +45,15 @@ class Character(Living):
         id_parent = self.id
         self.id = 'character:' + id_parent
 
+    def load_img_vectors(self, img):
+        img_vectors = {}
+        keys = ['N', 'NW', 'W', 'SW', 'S', 'SE', 'E', 'NE']
+
+        for index, key in enumerate(keys):
+            img_v = pg.transform.rotate(img, 45 * index)
+            img_vectors[key] = img_v
+        return img_vectors
+
 
 class Player(Character):
     """This class handles the player object."""
@@ -66,93 +61,112 @@ class Player(Character):
     def __init__(self, name, level, location, *groups):
         """init."""
         super(Player, self).__init__(name, level, 'player', *groups)
-        ssheet = 'resources\\playerSS.png'
-        ssheet = res_path(ssheet)
-        self.ss = spritesheet(ssheet)
-        self.sstrip = self.ss.load_strip((0, 0, 16, 16), 8, (255, 255, 255))
+        self.base_img = setup.GFX['player']
+        self.imgs = self.load_img_vectors(self.base_img)
+        self.image = self.imgs['N']
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = location
+        self.direction = 0
 
-        self.img_N, self.img_S, self.img_E, self.img_W = self.sstrip[:4]
-        self.img_NE, self.img_SE, self.img_NW, self.img_SW = self.sstrip[4:]
-
-        self.image = self.img_N
-        self.rect = pg.Rect(location, self.image.get_size())
+        self.stat_list = self.get_stat_list()
+        self.inventory_list = []
 
         id_parent = self.id
         self.id = 'player:' + id_parent
 
-    def update_stats(self):
-        """Update player stat text attributes for blitting."""
-        self.hp_t = FNT['sml'].render('    HP: ' + str(self.hp), 1, CLR['blk'])
-        self.attk_t = FNT['sml'].render('ATTK: ' +
-                                        str(self.attk), 1, CLR['blk'])
-        self.dfnc_t = FNT['sml'].render('DFNC: ' +
-                                        str(self.dfnc), 1, CLR['blk'])
+    def get_stat_list(self):
+        stat_list = ['HP: ' + str(self.hp),
+                     'ATTK: ' + str(self.attk),
+                     'DFNC: ' + str(self.dfnc)]
+        return stat_list
 
-    def blit_inventory(self, game):
-        inventory = FNT['smlx'].render('Inventory:', 1, CLR['blk'])
-        game.screen.blit(inventory, (320, 55))
+    def get_invtry_list(self):
+        self.inventory_list = []
         for index, item in enumerate(self.inventory):
             name = item.name
             if item.is_equipped:
                 name += ' - E'
-            name_t = FNT['sml'].render(name, 1, CLR['blk'])
-            game.screen.blit(name_t, (320, 70 + (index * 11)))
+            self.inventory_list.append(name)
+        return self.inventory_list
 
     def update(self, dt, game):
         """Update player object, handle movement, blockers, and viewport."""
-        last = self.rect.copy()
+        new = self.rect.copy()
         diag = False
         key = pg.key.get_pressed()
-        if key[pg.K_RIGHT] and key[pg.K_UP]:
+        if key[pg.K_d] and key[pg.K_w]:
+            if not self.direction == 7:
+                self.image = self.imgs['NE']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 7
             self.rect.x += self.spd * .707
             self.rect.y -= self.spd * .707
-            self.image = self.img_NE
             diag = True
-        if key[pg.K_LEFT] and key[pg.K_UP]:
+        if key[pg.K_a] and key[pg.K_w]:
+            if not self.direction == 1:
+                self.image = self.imgs['NW']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 1
             self.rect.x -= self.spd * .707
             self.rect.y -= self.spd * .707
-            self.image = self.img_NW
             diag = True
-        if key[pg.K_RIGHT] and key[pg.K_DOWN]:
+        if key[pg.K_d] and key[pg.K_s]:
+            if not self.direction == 5:
+                self.image = self.imgs['SE']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 5
             self.rect.x += self.spd * .707
             self.rect.y += self.spd * .707
-            self.image = self.img_SE
             diag = True
-        if key[pg.K_LEFT] and key[pg.K_DOWN]:
+        if key[pg.K_a] and key[pg.K_s]:
+            if not self.direction == 3:
+                self.image = self.imgs['SW']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 3
             self.rect.x -= self.spd * .707
             self.rect.y += self.spd * .707
-            self.image = self.img_SW
             diag = True
-        if key[pg.K_RIGHT] and not diag:
+        if key[pg.K_d] and not diag:
+            if not self.direction == 6:
+                self.image = self.imgs['E']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 6
             self.rect.x += self.spd
-            self.image = self.img_E
-        if key[pg.K_LEFT] and not diag:
+        if key[pg.K_a] and not diag:
+            if not self.direction == 2:
+                self.image = self.imgs['W']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 2
             self.rect.x -= self.spd
-            self.image = self.img_W
-        if key[pg.K_UP] and not diag:
+        if key[pg.K_w] and not diag:
+            if not self.direction == 0:
+                self.image = self.imgs['N']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 0
             self.rect.y -= self.spd
-            self.image = self.img_N
-        if key[pg.K_DOWN] and not diag:
+        if key[pg.K_s] and not diag:
+            if not self.direction == 4:
+                self.image = self.imgs['S']
+                self.rect = self.image.get_rect()
+                self.rect.center = new.center
+                self.direction = 4
             self.rect.y += self.spd
-            self.image = self.img_S
-
-        new = self.rect
-        for cell in game.tilemap.layers['triggers'].collide(new, 'blocker'):
-            blockers = cell['blocker']
-            if 'l' in blockers and last.right <= cell.left and \
-                    new.right > cell.left:
-                new.right = cell.left
-            if 'r' in blockers and last.left >= cell.right and \
-                    new.left < cell.right:
-                new.left = cell.right
-            if 't' in blockers and last.bottom <= cell.top and \
-                    new.bottom > cell.top:
-                new.bottom = cell.top
-            if 'b' in blockers and last.top >= cell.bottom and \
-                    new.top < cell.bottom:
-                new.top = cell.bottom
 
         game.tilemap.set_focus(new.x, new.y)
+
+    def attack(self, surface):
+        for item in self.inventory:
+            if 'weapon' in item.id:
+                if item.is_equipped:
+                    self.image = item.attk_img
+                    self.direction = 8
 
 
 class Enemy(Character):
@@ -161,24 +175,27 @@ class Enemy(Character):
     def __init__(self, name, level, location, *groups):
         """init."""
         super(Enemy, self).__init__(name, level, 'enemy', *groups)
-        img = 'resources\\enemy.png'
-        img = res_path(img)
-        self.image = pg.image.load(img)
+        if level == 1:
+            self.image = setup.GFX['pincher']
+        elif level == 2:
+            self.image = setup.GFX['grabber']
         self.image.convert()
-        self.rect = pg.Rect(location, self.image.get_size())
-        self.level_txt = FNT['sml'].render(str(level), 1, (255, 255, 255))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = location
         self.spd = self.spd / 4
-        self.image.blit(self.level_txt, (5, 5))
 
         id_parent = self.id
         self.id = 'enemy:' + id_parent
         self.i = 0
 
+    def encounter(self, player, world):
+        print self.name
+        print player.name
+        player.hp -= self.attk
+        self.kill()
+        msg = 'You killed ' + self.name + '.'
+        world.msgs.update_messages(msg)
+        world.stats.update(player.get_stat_list())
+
     def update(self, dt, game):
-        """Update enemy object, move toward player, check for collides."""
-        if self.rect.colliderect(game.player.rect):
-            if self.is_alive and game.player.is_alive:
-                fn.encounter(game.player, self)
-                if not self.is_alive:
-                    game.update_msgs('You killed ' + self.name)
-                    game.player.update_stats()
+        pass

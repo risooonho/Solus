@@ -91,7 +91,7 @@ class Tileset(object):
         return tileset
 
     def add_image(self, file):
-        img = 'resources\\' + file
+        img = 'resources\\tmx\\' + file
         img = res_path(img)
         image = pygame.image.load(img).convert_alpha()
         if not image:

@@ -1,4 +1,10 @@
-"""Run the game."""
+"""
+This is a Sci-Fy RPG game.
+
+Solus is about one man and his struggle
+to survive on a hostile planet.
+"""
+
 import sys
 import pygame as pg
 from lib import setup
